@@ -34,10 +34,16 @@
 </div>
 
 <script type="module">
-import * as CheerpX from "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-
 const status = document.getElementById("status");
-const say = t => { status.textContent = t; status.hidden = !t; };
+const say = t => { status.style.color = ""; status.textContent = t; status.hidden = !t; };
+const fail = m => { status.hidden = false; status.style.color = "#ff6b6b"; status.textContent = m; };
+addEventListener("error", e => fail("Error: " + e.message));
+addEventListener("unhandledrejection", e => fail("Error: " + ((e.reason && e.reason.message) || e.reason)));
+if (typeof Terminal === "undefined" || typeof FitAddon === "undefined") {
+  fail("xterm.js failed to load from cdn.jsdelivr.net (blocked or offline). Try another network or disable ad blockers.");
+  throw new Error("xterm missing");
+}
+say("crossOriginIsolated = " + crossOriginIsolated + " \u2014 loading CheerpX runtime\u2026");
 
 // ---- terminal (xterm.js) with a Termux-like palette ----
 const term = new Terminal({
@@ -52,6 +58,8 @@ fit.fit();
 
 try {
   // ---- real x86 Linux (Debian) running in WebAssembly ----
+  if (!crossOriginIsolated) throw new Error("Page is not cross-origin isolated: the _headers file was not deployed (needs COOP + COEP headers).");
+  const CheerpX = await import("https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js");
   say("Connecting to disk image\u2026");
   const cloud = await CheerpX.CloudDevice.create("wss://disks.webvm.io/debian_large_20230522_5044875331.ext2");
   const idb = await CheerpX.IDBDevice.create("termux-web-disk"); // persists your changes in this browser
@@ -113,7 +121,7 @@ try {
   }
 } catch (err) {
   console.error(err);
-  say("");
+  fail("Could not start Linux: " + (err && err.message || err));
   term.writeln("\x1b[31mCould not start Linux: " + (err && err.message || err) + "\x1b[0m");
   term.writeln("Check that the site is served over HTTPS with the COOP/COEP headers from the _headers file.");
 }
