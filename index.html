@@ -58,10 +58,10 @@ fit.fit();
 
 try {
   // ---- real x86 Linux (Debian) running in WebAssembly ----
-  if (!crossOriginIsolated) throw new Error("Page is not cross-origin isolated: the _headers file was not deployed (needs COOP + COEP headers).");
-  const CheerpX = await import("https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js");
+  if (!crossOriginIsolated) throw new Error("Page is not cross-origin isolated: the COOP + COEP headers are missing (deploy worker.js, it adds them).");
+  const CheerpX = await import("/cx/1.2.8/cx.esm.js");
   say("Connecting to disk image\u2026");
-  const cloud = await CheerpX.CloudDevice.create("wss://disks.webvm.io/debian_large_20230522_5044875331.ext2");
+  const cloud = await CheerpX.CloudDevice.create((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/disk/debian_large_20230522_5044875331.ext2");
   const idb = await CheerpX.IDBDevice.create("termux-web-disk"); // persists your changes in this browser
   if (location.hash === "#reset") { await idb.reset(); history.replaceState(null, "", location.pathname); }
   const overlay = await CheerpX.OverlayDevice.create(cloud, idb);
@@ -123,7 +123,7 @@ try {
   console.error(err);
   fail("Could not start Linux: " + (err && err.message || err));
   term.writeln("\x1b[31mCould not start Linux: " + (err && err.message || err) + "\x1b[0m");
-  term.writeln("Check that the site is served over HTTPS with the COOP/COEP headers from the _headers file.");
+  term.writeln("Make sure worker.js is deployed: it proxies CheerpX and the disk image and adds the COOP/COEP headers.");
 }
 </script>
 </body>
